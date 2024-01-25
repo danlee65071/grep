@@ -48,6 +48,7 @@ char* strjoin(const char* s1, const char* s2);
 FILE* open_file(const char* filename, const char* mode, t_flag* flags);
 void output_line(char *line, int n);
 void free_line(char** line);
+char* substr(char const *s, unsigned int start, size_t len);
 
 // process
 void parse_options(int argc, char **argv, t_flag** flags, t_grep *information);
