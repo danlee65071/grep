@@ -5,7 +5,7 @@ HEADERS = s21_grep.h
 HEADERS_DIR = includes
 PATH_HEADERS = $(addprefix $(HEADERS_DIR)/, $(HEADERS))
 OBJS = $(patsubst %.c, %.o, $(SRCS))
-DIR_OBJS = obj
+DIR_OBJS = objs
 PATH_OBJS = $(addprefix $(DIR_OBJS)/, $(OBJS))
 CC = gcc
 FLAGS = -Wall -Werror -Wextra -g -std=c11
