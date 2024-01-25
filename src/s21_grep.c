@@ -18,7 +18,7 @@ void execute(int argc, char **argv)
     t_grep information = {0};
     information.flags = "eivclnhsfo";
     t_flag* flags = init_flags(information);
-    parse_options(argc, argv, &flags, &information);
+    parse_options(argc, argv, &flags, &information); 
     process_files(flags, information);
     free(information.templates);
     free(flags);

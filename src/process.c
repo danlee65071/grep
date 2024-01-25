@@ -10,7 +10,7 @@ void parse_options(int argc, char **argv, t_flag **flags, t_grep *information)
     int opt = 0;
     char *template;
 
-    while ((opt = getopt(argc, argv, "e:ivclnhsf:o")) != EOF)
+    while ((opt = getopt_long(argc, argv, "e:ivclnhsf:o", 0, 0)) != EOF)
     {
         if (opt == '?')
             exit(2);
@@ -26,6 +26,8 @@ void parse_options(int argc, char **argv, t_flag **flags, t_grep *information)
         }
         information->num_flags++;
     }
+    if (!get_flag_val(*flags, 'e') && !get_flag_val(*flags, 'f'))
+        information->templates = strdup(argv[optind++]);
     if (!information->num_flags)
         add_template(information, *(argv + optind++));
     if (argc - optind == 1)
@@ -65,18 +67,21 @@ void parse_filenames(int argc, char **argv, t_grep *information)
 
 void output_match(regex_t *reg, char *line)
 {
-    regmatch_t math;
+    regmatch_t match;
     int offset = 0;
     while (1)
     {
-        int result = regexec(reg, line + offset, 1, &math, 0);
-        if (result != 0)
+        // printf("line:\n%s", line + offset);
+        int result = regexec(reg, line + offset, 1, &match, REG_NOTBOL);
+        // printf("%d\n", result);
+        if (result)
             break;
-        for (int i = math.rm_so; i < math.rm_eo; i++)
-            // putchar(line[i]);
-            putchar(*(line + 1));
+        // printf("so: %lld\n", match.rm_so);
+        // printf("eo: %lld\n", match.rm_eo);
+        for (int i = match.rm_so; i < match.rm_eo; i++)
+            putchar(*(line + i + offset));
         putchar('\n');
-        offset += math.rm_eo;
+        offset += match.rm_eo;
     }
 }
 
@@ -84,12 +89,13 @@ void process_files(t_flag *flags, t_grep information)
 {
     regex_t regex;
     int i_case = get_flag_val(flags, 'i') ? REG_ICASE : 0;
-    int c = 0;
-
+    
+    printf("%s\n", information.templates);
     if (regcomp(&regex, information.templates, REG_EXTENDED | i_case))
         perror("Error");
     for (size_t i = 0; i < information.num_filenames; i++)
     {
+        int c = 0;
         t_getline line = {0};
         line.file = open_file(*(information.filenames + i), "r", flags);
         while ((line.read = getline(&line.line, &line.len, line.file)) != -1)
@@ -102,7 +108,7 @@ void process_files(t_flag *flags, t_grep information)
                     if (!get_flag_val(flags, 'h'))
                         printf("%s:", *(information.filenames + i));
                     if (get_flag_val(flags, 'n'))
-                        printf("%zu:", line.line_count);
+                        printf("%zu:", line.line_count+1);
                     if (get_flag_val(flags, 'o') && !get_flag_val(flags, 'v'))
                         output_match(&regex, line.line);
                     else
@@ -110,6 +116,7 @@ void process_files(t_flag *flags, t_grep information)
                 }
                 c++;
             }
+            line.line_count++;
         }
         combo_check(flags, *(information.filenames + i), c);
         free_line(&(line.line));
@@ -132,13 +139,17 @@ char* parse_file_with_templates(const char* filename)
             buf = substr(line.line, 0, line.read - 1);
         else
             buf = strdup(line.line);
+        
         if (!templates)
             templates = strdup(buf);
         else
         {
-            tmp = templates;
-            templates = strjoin(templates, "|");
-            free_line(&tmp);
+            if (strlen(buf) > 0)
+            {
+                tmp = templates;
+                templates = strjoin(templates, "|");
+                free_line(&tmp);
+            }
             tmp = templates;
             templates = strjoin(templates, buf);
             free_line(&tmp);
